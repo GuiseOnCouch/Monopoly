@@ -5,7 +5,7 @@
  *
  * Author: Travis Heller
  *
- * Version 0.2.2 - April 17, 2016
+ * Version 0.2.2 - June 3, 2016
  *
  *
  * Includes player data handling and classic gameplay
