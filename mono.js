@@ -5,14 +5,18 @@
  *
  * Author: Travis Heller
  *
- * Version 0.2.1 - March 30, 2016
+ * Version 0.2.2 - April 17, 2016
  *
- * Monopoly main JavaScript port
  *
- * Includes player data handling and some gameplay
+ * Includes player data handling and classic gameplay
  */
 
+// Global variable for the player list object
 var Players;
+
+// Global variable for economic system setting
+var econSystem;
+
 
 /*
  * PlayerList linked list of Player nodes
@@ -28,11 +32,13 @@ var PlayerList = function() {
 	 * Adds a player to the game
 	 */
 	this.add = function(name) {
+		name = cleanString(name);
 		if (size == 0) {
 			size += 1;
 			var thePlayer = new Player(name);
 			front = thePlayer;
 			curr = this.getFront();
+			curr.setNext(front);
 			totalScore += Number(baseMoney);
 			return;
 		}
@@ -53,6 +59,18 @@ var PlayerList = function() {
 			if (current.getName() === name) {
 				return current;
 			}
+		current = current.getNext();
+		}
+		return null;
+	}
+
+	this.getPlayerById = function(id) {
+		var current = front;
+		for (var i = 0; i < size; i++) {
+			if (current.getId() == id) {
+				return current;
+			}
+			current = current.getNext();
 		}
 		return null;
 	}
@@ -129,6 +147,10 @@ var PlayerList = function() {
 	    	return name;
 	    }
 
+	    this.getId = function() {
+	    	return id;
+	    }
+
 	    this.getNext = function() {
 	    	return next;
 	    }
@@ -145,10 +167,23 @@ var PlayerList = function() {
 	    	return score;
 	    }
 
+	    this.changeScore = function(change) {
+	    	change = cleanString(change);
+	    	if (!isNaN(change)) {
+	    		score = Number(score) + Number(change);
+	    		totalScore = Number(totalScore) + Number(change);
+	    	}
+	    }
+
 	    this.changeMoney = function(change) {
-	    	money = Number(money) + Number(change);
-	    	score = Number(score) + Number(change);
-	    	totalScore = Number(totalScore) + Number(change);
+	    	change = cleanString(change);
+	    	if (!isNaN(change)){
+		    	money = Number(money) + Number(change);
+		    	score = Number(score) + Number(change);
+		    	totalScore = Number(totalScore) + Number(change);
+		    } else {
+		    	alert('Error: "' + change + '" is not a number.');
+		    }
 	    }
 	}
 
@@ -178,7 +213,8 @@ var PlayerList = function() {
 }
 
 
-
+// handlePlayers()
+// Creates player data from inputs
 function handlePlayers() {
 	var numPlayers = document.getElementById("numPlayers").value;
 	Players = new PlayerList();
@@ -186,11 +222,16 @@ function handlePlayers() {
 	for (var i = 1; i <= numPlayers; i++) {
 		Players.add(prompt("Player " + i + " name:"));
 	}
+	econSystem = document.getElementById("system").value;
 
 	//Players.displayPlayers();
 	//alert("Size: " + Players.getSize());
-	play();
+	buildPlayerListDisplay();
+	document.getElementById("setup").style.display = "none";
+	document.getElementById("game").style.display = "block";
 
+	document.getElementById("heading").innerHTML = econSystem;
+	play();
 
 }
 
@@ -201,11 +242,23 @@ function validatePlayers() {
 	}
 }
 
+function buildPlayerListDisplay() {
+	var size = Players.getSize();
+	var current = Players.getCurr();
+	var list = "";
+	for (var i = 0; i < size; i++) {
+		var name = current.getName();
+		var id = current.getId();
+		list += "<div class='list-group-item' id='pl"+id+"'>\n"+name+"\n<button class='btn btn-xs pull-right' onclick='transaction("+id+")'><span class='glyphicon glyphicon-usd'></span></button>\n</div>\n";
+		current = current.getNext();
+	}
+	document.getElementById("playerlist").innerHTML = list;
+}
+
 function play() {
 	var currentPlayer = Players.getCurr();
-	document.getElementById("setup").style.display = "none";
-	document.getElementById("game").style.display = "block";
-
+	var id = currentPlayer.getId();
+	document.getElementById("pl"+id).className = 'list-group-item active';
 	document.getElementById("playerName").innerHTML = currentPlayer.getName();
 	//document.getElementById("playerImg").src = currentPlayer.getImg();
 	document.getElementById("money").innerHTML = "$" + currentPlayer.getMoney();
@@ -214,14 +267,43 @@ function play() {
 }
 
 function nextPlayer() {
+	var pid = Players.getCurr().getId();
+	document.getElementById("pl"+pid).classList.remove('active');
 	Players.next();
 	play();
 }
 
 function changeMoney() {
 	var currentPlayer = Players.getCurr();
-	Players.getCurr().changeMoney(prompt("How much?"));
+	currentPlayer.changeMoney(prompt("How much?"));
 	document.getElementById("money").innerHTML = "$" + currentPlayer.getMoney();
 	document.getElementById("score").innerHTML = currentPlayer.getScore();
 	document.getElementById("totalScore").innerHTML = Players.getTotalScore();
+}
+
+function transaction(id) {
+	var fromPlayer = Players.getCurr();
+	var fromName = fromPlayer.getName();
+	var toPlayer = Players.getPlayerById(id);
+	var toName = toPlayer.getName();
+	var change = prompt("How much would you like to transfer to "+toName+"?");
+	fromPlayer.changeMoney(-1*change);
+	toPlayer.changeMoney(change);
+	var currentPlayer = fromPlayer;
+	document.getElementById("money").innerHTML = "$" + currentPlayer.getMoney();
+	document.getElementById("score").innerHTML = currentPlayer.getScore();
+	document.getElementById("totalScore").innerHTML = Players.getTotalScore();
+}
+
+function buy() {
+	alert("Buy is not implemented");
+}
+
+function cleanString(input) {
+	if (isNaN(input)) {
+		var clean = input.replace(/<[^>]+>/ig,"");
+		return clean;
+	} else {
+		return input;
+	}
 }
